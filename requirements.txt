@@ -1,0 +1,42 @@
+streamlit>=1.28.0
+streamlit_audiorecorder>=0.0.6
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+scipy>=1.10.0
+numpy>=1.24.0
+
+# Transcription
+openai-whisper>=20231117
+
+# Sentiment analysis
+vaderSentiment>=3.3.2
+langdetect>=1.0.9
+
+# YouTube analysis
+google-api-python-client>=2.100.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+wordcloud>=1.9.0
+
+# Audio format support
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+
+streamlit>=1.28.0
+streamlit-audiorecorder
+openai>=1.0.0
+google-api-python-client
+python-dotenv
+pydub
+speechrecognition
+textblob
+vaderSentiment
+nltk
