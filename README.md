@@ -1,23 +1,33 @@
-streamlit_app.py                 # Main app with navigation
-pages/
-  1_Audio_Analysis.py           # Audio transcription & sentiment
-  2_Audio_Comparison.py         # Audio comparison features  
-  3_Video_Analysis.py           # YouTube comment analysis
-modules/
-  __init__.py
-  audio_transcription.py        # Whisper transcription
-  audio_comparison.py           # Audio comparison & visualization
-  sentiment_analysis.py         # VADER sentiment
-  youtube_advanced.py           # YouTube API integration
-  utils.py                      # File utilities
-.streamlit/
-  secrets.toml                  # Local secrets (gitignored)
-requirements.txt               # Python dependencies
-assets/
-  sample_media/
-    hello.wav                  # Sample audio for comparison
+# AV Analytics Platform
 
+A professional media analysis platform for audio and video content, built with Streamlit. Perform transcription, sentiment analysis, and comprehensive media insights.
 
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-flat&logo=Streamlit&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-flat&logo=python&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-flat&logo=openai&logoColor=white)
 
+## 🚀 Features
 
-    
+### Audio Analysis
+- **Speech-to-Text Transcription**: Convert audio to text using OpenAI Whisper
+- **Sentiment Analysis**: Analyze emotional tone with chunk-based granular analysis
+- **Audio Metrics**: Comprehensive audio file analysis
+- **Multiple Input Methods**: File upload or microphone recording
+
+### Audio Comparison
+- **Side-by-Side Analysis**: Compare multiple audio files
+- **Visual Comparisons**: Waveform and metric comparisons
+- **Quality Assessment**: Audio quality and similarity scoring
+
+### Video Analysis
+- **YouTube Integration**: Analyze any YouTube video
+- **Comment Sentiment**: Process and analyze viewer comments
+- **Engagement Metrics**: Likes, views, and comment analytics
+- **Trend Analysis**: Identify popular topics and themes
+
+### Comment Analysis
+- **Advanced Sentiment Scoring**: Positive/negative/neutral classification
+- **Topic Modeling**: Automatic theme detection
+- **User Analytics**: Most active commenters and patterns
+- **Real-time Processing**: Live comment analysis capabilities
+
