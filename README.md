@@ -45,7 +45,7 @@ av_analytics/
 │
 ├── assets/                        # Sample audio/media files
 │
-├── streamlit_app.py               # Main entry point for Streamlit multipage app
+├── av.py               # Main entry point for Streamlit multipage app
 ├── requirements.txt               # All dependencies
 └── README.md                      # You are here
 ```
@@ -83,19 +83,11 @@ av_analytics/
 
 ---
 
-## 📘 Future Enhancements
-
-* 🎯 Real-time audio stream comparison
-* 📈 Interactive timeline of transcript segments
-* 🌐 Multi-language sentiment detection
-* 🧾 CSV export of YouTube analysis
-* 🧊 Power BI or Streamlit Analytics dashboard integration
-
----
 
 ## 👨‍💻 Author
 
-**Saptadeep**
+**Saptadeep Dey**
+
 Business Analytics & Data Science Enthusiast
 PGDM – Globsyn Business School, Kolkata
 
