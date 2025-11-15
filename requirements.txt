@@ -1,42 +1,59 @@
-streamlit>=1.28.0
-streamlit_audiorecorder>=0.0.6
+# ============================================================
+# 🎧 AV Analytics — Audio + Video + Comment Analysis Toolkit
+# ============================================================
 
-# Audio processing
-librosa>=0.10.0
-soundfile>=0.12.0
-scipy>=1.10.0
-numpy>=1.24.0
+# --- Core Framework ---
+streamlit>=1.37.0
 
-# Transcription
+# --- Audio Processing & Transcription ---
 openai-whisper>=20231117
-
-# Sentiment analysis
-vaderSentiment>=3.3.2
-langdetect>=1.0.9
-
-# YouTube analysis
-google-api-python-client>=2.100.0
-pandas>=2.0.0
-
-# Visualization
-matplotlib>=3.7.0
-wordcloud>=1.9.0
-
-# Audio format support
+librosa>=0.10.1
 pydub>=0.25.1
-ffmpeg-python>=0.2.0
+soundfile>=0.12.1
+scipy>=1.11.3
+numpy>=1.26.0
 
-# Utilities
-python-dotenv>=1.0.0
+# --- Machine Learning / NLP ---
+scikit-learn>=1.5.0
+vaderSentiment>=3.3.2
+transformers>=4.44.0
+torch>=2.3.0
+sentencepiece>=0.2.0
+protobuf>=5.27.0
 
+# --- Visualization & Analytics ---
+matplotlib>=3.8.0
+wordcloud>=1.9.3
+pandas>=2.2.2
+plotly>=5.23.0
 
-streamlit>=1.28.0
-streamlit-audiorecorder
-openai>=1.0.0
-google-api-python-client
-python-dotenv
-pydub
-speechrecognition
-textblob
-vaderSentiment
-nltk
+# --- YouTube Data API & Utilities ---
+google-api-python-client>=2.126.0
+google-auth>=2.33.0
+google-auth-oauthlib>=1.2.0
+
+# --- Streamlit UI Extensions ---
+streamlit-audiorecorder>=0.0.5
+streamlit-option-menu>=0.3.12
+
+# --- Text Processing Utilities ---
+regex>=2023.12.25
+nltk>=3.9
+tqdm>=4.66.5
+
+# --- Optional: Advanced Language Models ---
+# (for future sarcasm detection or summarization)
+sentence-transformers>=3.0.1
+accelerate>=0.34.0
+huggingface-hub>=0.25.0
+
+# --- System Dependency ---
+# ffmpeg must be installed separately (required by whisper & pydub)
+# Windows users:
+#   Download from https://www.gyan.dev/ffmpeg/builds/
+#   and add to PATH (e.g., C:\ffmpeg\bin)
+# Linux users:
+#   sudo apt install ffmpeg
+
+# --- Optional: Testing / Debugging Utilities ---
+pytest>=8.3.2

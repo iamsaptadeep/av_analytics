@@ -1,160 +1,214 @@
+# pages/Video_Analysis.py
 import streamlit as st
+from modules.youtube_comments import (
+    fetch_youtube_comments,
+    analyze_comments_sentiment,
+)
 import pandas as pd
-from modules.youtube_comments import run_analysis
+from io import BytesIO
 
-st.set_page_config(page_title="YouTube Analysis", layout="wide")
+# Optional visualization packages
+try:
+    from wordcloud import WordCloud, STOPWORDS
+    WC_AVAILABLE = True
+except Exception:
+    WC_AVAILABLE = False
+
+try:
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except Exception:
+    PLOTLY_AVAILABLE = False
+
+
+st.set_page_config(page_title="YouTube Comment Analysis", layout="wide")
 st.title("YouTube Comment Sentiment Analysis")
 
-st.markdown("""
-Analyze sentiment of YouTube comments using the YouTube Data API.
+# ---------------------------------------------------------------------
+# Sidebar Settings
+# ---------------------------------------------------------------------
+st.sidebar.header("Settings")
 
-**Requirements:**
-- YouTube Data API key (set in Streamlit secrets)
-- Public YouTube video (comments enabled)
-""")
-
-# API key check
-try:
-    api_key = st.secrets.get("YOUTUBE_API_KEY")
-    if not api_key:
-        st.error("""
-        ❌ YouTube API key not found!
-        
-        Please add your YouTube Data API key to Streamlit secrets:
-        
-        **Local testing**: Create `.streamlit/secrets.toml` with:
-        ```toml
-        YOUTUBE_API_KEY = "your_api_key_here"
-        ```
-        
-        **Streamlit Cloud**: Go to Settings → Secrets and add:
-        ```toml
-        YOUTUBE_API_KEY = "your_api_key_here"  
-        ```
-        """)
-        st.stop()
-except Exception:
-    st.error("Secrets not accessible - check Streamlit configuration")
-    st.stop()
-
-# Video input
-st.header("1. Video Selection")
-video_input = st.text_input(
-    "YouTube URL or Video ID",
-    placeholder="https://www.youtube.com/watch?v=... or dQw4w9WgXcQ",
-    help="Paste full YouTube URL or just the video ID"
+max_comments = st.sidebar.slider("Max comments (incl. replies)", 100, 5000, 1000, step=100)
+method = st.sidebar.selectbox("Sentiment method", ["vader", "transformer"], index=0)
+transformer_model_name = st.sidebar.text_input(
+    "Transformer sentiment model", "distilbert-base-uncased-finetuned-sst-2-english"
 )
 
-# Analysis parameters
-st.header("2. Analysis Settings")
-col1, col2 = st.columns(2)
-max_comments = col1.number_input(
-    "Max comments to analyze",
-    min_value=50,
-    max_value=5000,
-    value=500,
-    step=50,
-    help="Higher values take longer but provide better insights"
+include_replies = st.sidebar.checkbox("Include replies", True)
+use_sarcasm_model = st.sidebar.checkbox("Enable sarcasm detection (Transformer)", True)
+sarcasm_model_name = st.sidebar.text_input(
+    "Sarcasm model", "cardiffnlp/twitter-roberta-base-irony"
 )
+sarcasm_conf_threshold = st.sidebar.slider("Sarcasm confidence threshold", 0.5, 0.95, 0.6)
+invert_on_sarcasm = st.sidebar.checkbox("Invert sentiment if sarcasm detected", True)
 
-include_replies = col2.checkbox(
-    "Include comment replies", 
-    value=True,
-    help="Analyze replies to top-level comments"
-)
+wordcloud_max_words = st.sidebar.slider("Wordcloud max words", 50, 500, 200, 50)
+
+
+
+# ---------------------------------------------------------------------
+# Input
+# ---------------------------------------------------------------------
+video_url = st.text_input("YouTube video URL or ID", placeholder="https://www.youtube.com/watch?v=...")
 
 if st.button("Analyze Comments", type="primary"):
-    if not video_input.strip():
-        st.error("❌ Please enter a YouTube URL or Video ID")
+    if not video_url.strip():
+        st.error("Please provide a valid YouTube video URL or ID.")
+        st.stop()
+
+    # -------------------- Fetch Comments --------------------
+    with st.spinner("Fetching comments..."):
+        try:
+            comments = fetch_youtube_comments(video_url, max_comments=max_comments, include_replies=include_replies)
+            st.success(f"Fetched {len(comments)} comments.")
+        except Exception as e:
+            st.error(f"Error fetching comments: {e}")
+            st.stop()
+
+    if not comments:
+        st.warning("No comments retrieved.")
+        st.stop()
+
+    # -------------------- Sentiment & Sarcasm Analysis --------------------
+    with st.spinner("Analyzing sentiments and sarcasm..."):
+        try:
+            analyzed = analyze_comments_sentiment(
+                comments,
+                method=method,
+                transformer_model=(transformer_model_name if method == "transformer" else None),
+                use_sarcasm_model=use_sarcasm_model,
+                sarcasm_model_name=sarcasm_model_name,
+                sarcasm_confidence_threshold=sarcasm_conf_threshold,
+                invert_on_sarcasm=invert_on_sarcasm,
+            )
+        except Exception as e:
+            st.error(f"Analysis failed: {e}")
+            st.stop()
+
+    total = len(analyzed)
+    pos = sum(1 for c in analyzed if c.get("_sentiment_label") == "Positive")
+    neg = sum(1 for c in analyzed if c.get("_sentiment_label") == "Negative")
+    neu = sum(1 for c in analyzed if c.get("_sentiment_label") == "Neutral")
+    sar_true = sum(1 for c in analyzed if c.get("_sarcasm"))
+
+    # ---------------------------------------------------------------------
+    # Sentiment Distribution Bar Chart
+    # ---------------------------------------------------------------------
+    st.subheader("Sentiment Distribution")
+
+    if PLOTLY_AVAILABLE:
+        df_chart = pd.DataFrame({
+            "Sentiment": ["Positive", "Neutral", "Negative"],
+            "Count": [pos, neu, neg]
+        })
+        fig = px.bar(
+            df_chart,
+            x="Sentiment",
+            y="Count",
+            color="Sentiment",
+            color_discrete_map={"Positive": "green", "Neutral": "gray", "Negative": "red"},
+            text="Count",
+            title="Sentiment Distribution of Comments"
+        )
+        fig.update_traces(textposition="outside")
+        fig.update_layout(
+            xaxis_title="Sentiment Category",
+            yaxis_title="Number of Comments",
+            showlegend=False
+        )
+        st.plotly_chart(fig, use_container_width=True)
     else:
-        with st.spinner("🔄 Fetching and analyzing comments... This may take a while for videos with many comments"):
-            try:
-                # Run analysis
-                df, kpi, pos_wc_bytes, neg_wc_bytes = run_analysis(
-                    video_input, 
-                    max_comments=int(max_comments)
-                )
-                
-                # Display results
-                st.success(f"✅ Analysis complete! Processed {len(df)} comments")
-                
-                # Key metrics
-                st.header("📈 Key Metrics")
-                kpi_cols = st.columns(4)
-                kpi_cols[0].metric("Total Comments", kpi["n_comments"])
-                kpi_cols[1].metric("Positive", f"{kpi['pct_positive']:.1f}%")
-                kpi_cols[2].metric("Neutral", f"{kpi['pct_neutral']:.1f}%") 
-                kpi_cols[3].metric("Negative", f"{kpi['pct_negative']:.1f}%")
-                
-                st.metric("Overall Sentiment Score", f"{kpi['avg_compound']:.3f}",
-                         help="Compound score: -1 (most negative) to +1 (most positive)")
-                
-                # Sentiment distribution
-                st.header("😊 Sentiment Distribution")
-                sentiment_data = {
-                    "Positive": kpi['pct_positive'],
-                    "Neutral": kpi['pct_neutral'], 
-                    "Negative": kpi['pct_negative']
-                }
-                st.bar_chart(sentiment_data)
-                
-                # Word clouds
-                st.header("☁️ Word Clouds")
-                if pos_wc_bytes or neg_wc_bytes:
-                    wc_col1, wc_col2 = st.columns(2)
-                    
-                    if pos_wc_bytes:
-                        wc_col1.image(pos_wc_bytes, use_column_width=True,
-                                    caption="Most frequent words in Positive comments")
-                    else:
-                        wc_col1.info("No positive comments to generate word cloud")
-                        
-                    if neg_wc_bytes:
-                        wc_col2.image(neg_wc_bytes, use_column_width=True,
-                                    caption="Most frequent words in Negative comments")
-                    else:
-                        wc_col2.info("No negative comments to generate word cloud")
-                else:
-                    st.info("Not enough text data to generate word clouds")
-                
-                # Comments table
-                st.header("💬 Sample Comments")
-                display_df = df[[
-                    'published', 'author', 'clean_comment', 
-                    'compound', 'sentiment_vader'
-                ]].sort_values('published', ascending=False).head(100)
-                
-                st.dataframe(
-                    display_df,
-                    use_container_width='stretch',
-                    column_config={
-                        "published": "Date",
-                        "author": "Author", 
-                        "clean_comment": "Comment",
-                        "compound": "Sentiment Score",
-                        "sentiment_vader": "Sentiment"
-                    }
-                )
-                
-                # Download option
-                csv_data = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    "💾 Download Full Results (CSV)",
-                    data=csv_data,
-                    file_name=f"youtube_analysis_{kpi['video_id']}.csv",
-                    mime="text/csv"
-                )
-                
-            except Exception as e:
-                st.error(f"❌ Analysis failed: {str(e)}")
-                st.info("""
-                💡 Common issues:
-                - Invalid YouTube URL/ID
-                - Video has disabled comments
-                - YouTube API quota exceeded
-                - Video is private or unavailable
-                """)
+        st.write(f"Positive: {pos}, Neutral: {neu}, Negative: {neg}")
 
+    col1, col2 = st.columns(2)
+    col1.metric("Total Comments", total)
+    col2.metric("Sarcasm Detected", sar_true)
 
+    # ---------------------------------------------------------------------
+    # Word Clouds (side-by-side, memory safe)
+    # ---------------------------------------------------------------------
+    if WC_AVAILABLE:
+        st.subheader("☁️ Word Clouds")
 
-                
+        pos_text = " ".join(c.get("text", "") for c in analyzed if c.get("_sentiment_label") == "Positive")
+        neg_text = " ".join(c.get("text", "") for c in analyzed if c.get("_sentiment_label") == "Negative")
+
+        stopwords = set(STOPWORDS)
+        stopwords.update(["https", "http", "amp"])
+
+        col1, col2 = st.columns(2)
+
+        if pos_text.strip():
+            with col1:
+                st.markdown("**Positive Comments Word Cloud**")
+                wc_pos = WordCloud(
+                    width=800, height=400, background_color="white",
+                    colormap="Greens", stopwords=stopwords, max_words=wordcloud_max_words
+                ).generate(pos_text)
+                buf = BytesIO()
+                wc_pos.to_image().save(buf, format="PNG")
+                st.image(buf.getvalue(), use_container_width=True)
+
+        if neg_text.strip():
+            with col2:
+                st.markdown("**Negative Comments Word Cloud**")
+                wc_neg = WordCloud(
+                    width=800, height=400, background_color="white",
+                    colormap="Reds", stopwords=stopwords, max_words=wordcloud_max_words
+                ).generate(neg_text)
+                buf = BytesIO()
+                wc_neg.to_image().save(buf, format="PNG")
+                st.image(buf.getvalue(), use_container_width=True)
+    else:
+        st.info("Install 'wordcloud' to see text cloud visuals.")
+
+    # ---------------------------------------------------------------------
+    # Top Comments Tables (visible actual comments)
+    # ---------------------------------------------------------------------
+    st.subheader("Top 10 Positive and Negative Comments")
+
+    df = pd.DataFrame(analyzed)
+
+    df_display = pd.DataFrame({
+        "Author": df["author"],
+        "Likes": df["like_count"],
+        "Sentiment": df["_sentiment_label"],
+        "Sentiment Score": df["_sentiment_score"],
+        "Sarcasm Score": df.get("_sarcasm_score", 0),
+        "Comment": df["text"],
+    })
+
+    # Split by sentiment
+    top_pos = df_display[df_display["Sentiment"] == "Positive"].sort_values("Likes", ascending=False).head(10)
+    top_neg = df_display[df_display["Sentiment"] == "Negative"].sort_values("Likes", ascending=False).head(10)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("#### 👍 Top 10 Positive Comments")
+        st.data_editor(
+            top_pos[["Author", "Likes", "Sentiment Score", "Sarcasm Score", "Comment"]],
+            use_container_width=True,
+            hide_index=True,
+            disabled=True,
+            column_config={
+                "Comment": st.column_config.TextColumn("Comment", width="large")
+            },
+        )
+
+    with col2:
+        st.markdown("#### 👎 Top 10 Negative Comments")
+        st.data_editor(
+            top_neg[["Author", "Likes", "Sentiment Score", "Sarcasm Score", "Comment"]],
+            use_container_width=True,
+            hide_index=True,
+            disabled=True,
+            column_config={
+                "Comment": st.column_config.TextColumn("Comment", width="large")
+            },
+        )
+
+    st.caption("Each table shows top comments by like count, with sarcasm probabilities and full visible text.")
+
+    st.success("✅ YouTube comment analysis complete.")

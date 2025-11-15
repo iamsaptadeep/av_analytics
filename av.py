@@ -2,9 +2,9 @@ import streamlit as st
 
 # Set page config - this must be the first Streamlit command
 st.set_page_config(
-    page_title="AV Analytics",
+    page_title="EchoMind",
     layout="wide",
-    page_icon="🔍",
+    page_icon="",
     initial_sidebar_state="expanded"
 )
 
@@ -111,7 +111,7 @@ set_custom_theme()
 # Premium Header Section
 st.markdown("""
 <div class="premium-header">
-    <h1>AV Analytics Platform</h1>
+    <h1>EchoMind</h1>
     <p>Professional media analysis tools for comprehensive audio and video insights</p>
 </div>
 """, unsafe_allow_html=True)
@@ -201,5 +201,4 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-
 
